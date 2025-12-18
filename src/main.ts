@@ -3,14 +3,24 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
   app.enableCors({
     origin: [
       'http://localhost:5173',
       'https://project-managment-beta.vercel.app'
     ],
-    methods: '*',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true
   });
-  await app.listen(process.env.PORT ?? 3000);
+
+  const port = process.env.PORT ?? 3000;
+  const server = await app.listen(port);
+
+  server.setTimeout(300000);
+  server.keepAliveTimeout = 300000;
+
+  console.log(`Server is running on port ${port}`);
+  console.log(`Health check available at: http://localhost:${port}/health`);
 }
+
 bootstrap();
