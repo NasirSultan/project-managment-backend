@@ -1,0 +1,141 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  organization String?
+  phone        String?
+  role         String?
+  file         String?
+  password     String?
+  otp          String?
+  otpExpiry    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  createdProjects Project[]
+  assignedProjects Project[] @relation("ProjectAssignments")
+  assignedTasks Task[] @relation("TaskAssignments")
+  comments Comment[] @relation("UserComments")
+  readComments Comment[] @relation("ReadComments")
+}
+
+
+
+model Project {
+  id String @id @default(uuid())
+  name String
+  description String?
+  status String @default("active")
+  priority String @default("medium")
+  visibility String @default("private")
+  startDate DateTime?
+  endDate DateTime?
+  figmaLink String?
+  documentation String?
+  isDeleted Boolean @default(false)
+
+  createdById String
+  createdBy User @relation(fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tasks Task[]
+  assignedUsers User[] @relation("ProjectAssignments")
+  flows Flow[]
+
+  @@index([createdById])
+  @@index([status])
+  @@index([priority])
+  @@index([isDeleted])
+
+}
+
+model Flow {
+  id String @id @default(uuid())
+  name String
+  description String?
+
+  projectId String
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  screens Screen[]
+  tasks Task[] @relation("TaskFlows")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+    @@index([projectId])
+  @@index([createdAt])
+    @@index([projectId, name])
+}
+
+model Screen {
+  id String @id @default(uuid())
+  name String
+  description String?
+  notes String?
+
+  flowId String
+  flow Flow @relation(fields: [flowId], references: [id], onDelete: Cascade)
+
+  tasks Task[] @relation("TaskScreens")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+    @@index([flowId])
+  @@index([createdAt])
+  @@index([flowId, name])
+}
+
+
+
+model Task {
+  id String @id @default(uuid())
+  title String
+  description String?
+  status String @default("pending")
+  dueDate DateTime?
+  projectId String
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  assignedUsers User[] @relation("TaskAssignments")
+  flows Flow[] @relation("TaskFlows")
+  screens Screen[] @relation("TaskScreens")
+  comments Comment[] @relation("TaskComments")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+    @@index([projectId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdAt])
+  @@index([projectId, status])
+}
+
+
+
+model Comment {
+  id String @id @default(uuid())
+  content String
+  authorId String
+  author User @relation("UserComments", fields: [authorId], references: [id], onDelete: Cascade)
+  taskId String
+  task Task @relation("TaskComments", fields: [taskId], references: [id], onDelete: Cascade)
+  readBy User[] @relation("ReadComments")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+    @@index([taskId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([taskId, createdAt])
+}
